@@ -1,3 +1,5 @@
+// File: src/pages/Login.jsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -6,6 +8,7 @@ import { logActivity } from "../utils/activityLogger";
 
 const Login = () => {
   const [empId, setEmpId] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
@@ -14,33 +17,36 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!empId.trim()) {
-      alert("Enter Employee ID");
+    if (!empId.trim() || !password.trim()) {
+      alert("Enter Employee ID and Password");
       return;
     }
 
     try {
       setLoading(true);
 
-      // 🔥 CALL BACKEND
       const res = await axios.post(
         "http://localhost:8080/api/auth/login",
         {
           employeeId: empId,
+          password: password,
         }
       );
 
-      // ✅ Only if backend success
+      // Save employee session
       login(empId);
 
-      // 🔥 log activity AFTER login
+      sessionStorage.setItem("portalUser", empId);
+
       await logActivity(empId, "Logged In");
 
-      navigate("/");
+      navigate("/portal");
 
     } catch (err) {
-      console.error(err);
-      alert("Login failed");
+      console.error("Login Error:", err);
+      // Try to parse the specific error message sent from the backend
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Login failed (401 Unauthorized). Please check your matching Employee ID and Password!";
+      alert(`Server Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -64,7 +70,22 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <div className="input-group">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="Enter password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading}
+          >
             {loading ? "Authenticating..." : "Authenticate"}
           </button>
         </form>

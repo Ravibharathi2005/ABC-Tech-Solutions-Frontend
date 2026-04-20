@@ -11,6 +11,16 @@ export const AuthProvider = ({ children }) => {
     if (savedId) {
       setEmployeeId(savedId);
     }
+
+    // Cross-Tab Logout Listener for Context state wipe
+    const handleStorageChange = (e) => {
+      if (e.key === 'forceLogout') {
+        setEmployeeId(null);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const login = (id) => {
