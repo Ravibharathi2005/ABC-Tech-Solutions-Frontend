@@ -33,19 +33,53 @@ const Login = () => {
         }
       );
 
-      // Save employee session
-      login(empId);
+      const { token, role, trustScore, riskLevel, user } = res.data;
+
+      // Save to auth context with full user data
+      login({
+        employeeId: empId,
+        role,
+        trustScore,
+        riskLevel,
+        token,
+        user,
+      });
 
       sessionStorage.setItem("portalUser", empId);
+      sessionStorage.setItem("token", token);
+      localStorage.removeItem("failedLoginAttempts");
 
-      await logActivity(empId, "Logged In");
+      // Log successful login activity
+      await logActivity(empId, "Login success", {
+        riskLevel,
+        role,
+      });
 
       navigate("/portal");
-
     } catch (err) {
       console.error("Login Error:", err);
-      // Try to parse the specific error message sent from the backend
-      const errorMessage = err.response?.data?.message || err.response?.data?.error || "Login failed (401 Unauthorized). Please check your matching Employee ID and Password!";
+      const errorMessage =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Login failed (401 Unauthorized)";
+
+      const fails = parseInt(localStorage.getItem("failedLoginAttempts") || "0", 10) + 1;
+      localStorage.setItem("failedLoginAttempts", fails);
+
+      let actionToLog = "Failed login attempt";
+      let riskLevel = "Medium";
+
+      if (fails >= 3) {
+        actionToLog = "Too many failed attempts";
+        riskLevel = "High";
+      }
+
+      await logActivity(empId, actionToLog, {
+        riskLevel,
+        errorGiven: errorMessage,
+        attempts: fails,
+      });
+
       alert(`Server Error: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -81,11 +115,7 @@ const Login = () => {
             />
           </div>
 
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={loading}
-          >
+          <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? "Authenticating..." : "Authenticate"}
           </button>
         </form>

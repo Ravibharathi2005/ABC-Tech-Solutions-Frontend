@@ -2,12 +2,14 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { FiLogOut } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
+import { logActivity } from '../utils/activityLogger';
 
 const Navbar = () => {
   const { employeeId, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logActivity(employeeId, "Logout");
     logout();
     navigate('/login');
   };

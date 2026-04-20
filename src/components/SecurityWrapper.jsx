@@ -23,16 +23,29 @@ const SecurityWrapper = ({ children }) => {
 
     const handleStorage = (e) => {
       if (e.key === "forceLogout") {
-        sessionStorage.removeItem("monitoringSession");
-        sessionStorage.removeItem("portalUser");
+        sessionStorage.clear(); // Clears monitoringSession, portalUser, employeeId, everything!
         setHasAccess(false);
       }
     };
 
     window.addEventListener("storage", handleStorage);
 
+    // INTERVAL FALLBACK: 
+    // This allows you to test the logout via the SAME tab console. 
+    // Browsers natively block 'storage' events from firing in the exact same tab where the code ran.
+    // Also, if you use different ports (5174 vs 5173), ports don't natively share localStorage!
+    const poller = setInterval(() => {
+      const logoutTime = localStorage.getItem("forceLogout");
+      if (logoutTime) {
+        // If a logout signal is detected, clear session and block.
+        sessionStorage.clear();
+        setHasAccess(false);
+      }
+    }, 500);
+
     return () => {
       window.removeEventListener("storage", handleStorage);
+      clearInterval(poller);
     };
   }, []);
 

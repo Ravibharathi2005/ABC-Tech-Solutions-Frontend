@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 
 import Layout from "./components/Layout";
@@ -12,6 +12,7 @@ import AdminPanel from "./pages/AdminPanel";
 import SalaryPage from "./pages/SalaryPage";
 import ConfidentialReports from "./pages/ConfidentialReports";
 import SecurityWrapper from "./components/SecurityWrapper";
+import ActivityMonitor from "./components/ActivityMonitor"; // <-- Inject Telemetry component
 
 function AppRoutes() {
   const location = useLocation();
@@ -20,6 +21,8 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Telemetry hook injected at standard namespace layout level */}
+      <Route element={<><ActivityMonitor /><Outlet /></>}>
       {/* Root route */}
       <Route
         path="/"
@@ -61,6 +64,7 @@ function AppRoutes() {
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
+      </Route>
     </Routes>
   );
 }
