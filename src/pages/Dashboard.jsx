@@ -1,206 +1,192 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { logActivity } from '../utils/activityLogger';
+import axios from 'axios';
+import { 
+  FiUser, FiCalendar, FiCheckCircle, 
+  FiArrowRight, FiBell, FiClock, FiFileText,
+  FiTrello, FiActivity, FiUsers
+} from 'react-icons/fi';
 
 const Dashboard = () => {
-  const { employeeId, role, trustScore, riskLevel, user } = useAuth();
-  const [dashboardContent, setDashboardContent] = useState(null);
+  const { employeeId, role, user, token } = useAuth();
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [stats, setStats] = useState({
+    pendingTasks: 0,
+    completedTasks: 0,
+    taskAccuracy: 0,
+    attendanceStreak: 0,
+    isClockedIn: false,
+    totalEmployees: 0
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    logActivity(employeeId, "Dashboard", "User visited dashboard");
-  }, [employeeId]);
-
-  // Role-based dashboard content
-  useEffect(() => {
-    const getRoleDashboard = () => {
-      switch (role) {
-        case 'SUPER_ADMIN':
-          return {
-            title: 'Super Admin Dashboard',
-            subtitle: 'System-wide control and monitoring',
-            sections: [
-              { title: 'System Health', icon: '⚙️', content: 'All systems operational' },
-              { title: 'User Management', icon: '👥', content: 'Manage all users and roles' },
-              { title: 'Security Alerts', icon: '🚨', content: 'View critical security events' },
-              { title: 'Audit Logs', icon: '📋', content: 'Complete activity audit trail' },
-            ],
-          };
-        case 'ADMIN':
-          return {
-            title: 'Admin Dashboard',
-            subtitle: 'Administrative controls',
-            sections: [
-              { title: 'User Activity', icon: '📊', content: 'Monitor team activity' },
-              { title: 'System Status', icon: '⚙️', content: 'System health status' },
-              { title: 'Access Control', icon: '🔐', content: 'Manage access policies' },
-              { title: 'Reports', icon: '📈', content: 'Generate reports' },
-            ],
-          };
-        case 'HR':
-          return {
-            title: 'HR Dashboard',
-            subtitle: 'Employee management',
-            sections: [
-              { title: 'Employee Records', icon: '👤', content: 'Manage employee data' },
-              { title: 'Attendance', icon: '📅', content: 'Track attendance' },
-              { title: 'Payroll', icon: '💰', content: 'Payroll management' },
-              { title: 'Requests', icon: '📝', content: 'Employee requests' },
-            ],
-          };
-        case 'MANAGER':
-          return {
-            title: 'Manager Dashboard',
-            subtitle: 'Team oversight',
-            sections: [
-              { title: 'Team Performance', icon: '📊', content: 'Team metrics' },
-              { title: 'Task Tracking', icon: '✅', content: 'Track team tasks' },
-              { title: 'Reports', icon: '📄', content: 'Generate reports' },
-              { title: 'Team Activity', icon: '👥', content: 'View team updates' },
-            ],
-          };
-        case 'SECURITY_ANALYST':
-          return {
-            title: 'Security Dashboard',
-            subtitle: 'Security monitoring',
-            sections: [
-              { title: 'Threat Analysis', icon: '🔍', content: 'Monitor threats' },
-              { title: 'Access Logs', icon: '🔐', content: 'Review access logs' },
-              { title: 'Incidents', icon: '🚨', content: 'Investigate incidents' },
-              { title: 'Compliance', icon: '✓', content: 'Compliance status' },
-            ],
-          };
-        default: // EMPLOYEE
-          return {
-            title: 'Employee Portal',
-            subtitle: 'Your dashboard',
-            sections: [
-              { title: 'My Profile', icon: '👤', content: 'View your profile' },
-              { title: 'Attendance', icon: '📅', content: 'Your attendance records' },
-              { title: 'Tasks', icon: '✅', content: 'Your assigned tasks' },
-              { title: 'Updates', icon: '📢', content: 'Latest updates' },
-            ],
-          };
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get('http://localhost:8080/api/user/stats', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data.success) {
+          setStats(res.data.stats);
+        }
+      } catch (err) {
+        console.error("Dashboard stats fetch error:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
-    setDashboardContent(getRoleDashboard());
-  }, [role]);
-
-  // Get risk level color
-  const getRiskColor = () => {
-    switch (riskLevel) {
-      case 'CRITICAL':
-        return '#d32f2f'; // Red
-      case 'HIGH':
-        return '#f57c00'; // Orange
-      case 'MEDIUM':
-        return '#fbc02d'; // Yellow
-      case 'LOW':
-      default:
-        return '#388e3c'; // Green
+    if (employeeId && token) {
+      fetchStats();
+      logActivity(employeeId, "DASHBOARD_ACCESS", "User accessed real-time portal metrics");
     }
-  };
 
-  // Get trust score color
-  const getTrustColor = () => {
-    if (trustScore >= 80) return '#388e3c'; // Green
-    if (trustScore >= 50) return '#fbc02d'; // Yellow
-    if (trustScore >= 20) return '#f57c00'; // Orange
-    return '#d32f2f'; // Red
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [employeeId, token]);
+
+  const getDashboardModules = () => {
+    const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN';
+    
+    if (isAdmin) {
+      return [
+        { title: 'Workforce Status', icon: <FiUsers />, content: `${stats.totalEmployees} employees active in registry` },
+        { title: 'Pending Actions', icon: <FiTrello />, content: `${stats.pendingTasks} tasks requiring oversight` },
+        { title: 'Operational Log', icon: <FiFileText />, content: 'Centralized record syncing stable' },
+        { title: 'Notifications', icon: <FiBell />, content: '3 department alerts pending' },
+      ];
+    }
+
+    return [
+      { title: 'My Profile', icon: <FiUser />, content: 'View verified personnel details' },
+      { title: 'Attendance', icon: <FiCalendar />, content: stats.isClockedIn ? 'Your shift is currently active' : 'Clock-in required for today' },
+      { title: 'My Tasks', icon: <FiTrello />, content: `${stats.pendingTasks} assignments pending completion` },
+      { title: 'Announcements', icon: <FiBell />, content: '2 organization updates available' },
+    ];
   };
 
   return (
-    <div>
-      <div className="page-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-          <div>
-            <h1>{dashboardContent?.title || 'Dashboard'}</h1>
-            <p>{dashboardContent?.subtitle || 'Welcome back'} • {user?.name || employeeId}</p>
-          </div>
+    <div className="page-container">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ marginBottom: '0.25rem' }}>Welcome, {user?.name.split(' ')[0] || 'Employee'}</h1>
+          <p>Employee ID: {employeeId} • {user?.department || 'Operations'}</p>
+        </div>
 
-          {/* Trust Score Badge */}
-          <div
-            style={{
-              background: getTrustColor(),
-              color: 'white',
-              padding: '12px 20px',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              minWidth: '120px',
-            }}
-          >
-            <span style={{ fontSize: '0.9rem', opacity: 0.9 }}>Trust Score</span>
-            <span style={{ fontSize: '1.8rem', marginTop: '4px' }}>{trustScore}</span>
-            <span style={{ fontSize: '0.8rem', marginTop: '2px' }}>Risk: {riskLevel}</span>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
+            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+            {currentTime.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
       </div>
 
-      {/* Role Badge */}
-      <div style={{ marginBottom: '20px' }}>
-        <span
-          style={{
-            background: '#e3f2fd',
-            color: '#1565c0',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '0.9rem',
-            fontWeight: '500',
-          }}
-        >
-          📌 Role: {role}
-        </span>
+      {/* Dynamic Status Banner */}
+      <div style={{
+        background: stats.isClockedIn ? 'rgba(16, 185, 129, 0.05)' : 'rgba(59, 130, 246, 0.05)',
+        borderLeft: `4px solid ${stats.isClockedIn ? 'var(--security-green)' : 'var(--accent-color)'}`,
+        padding: '1.25rem 2rem',
+        borderRadius: '8px',
+        marginBottom: '3.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1.5rem'
+      }}>
+        <div style={{ 
+          background: stats.isClockedIn ? 'var(--security-green)' : 'var(--accent-color)', 
+          color: 'white', 
+          width: '36px', 
+          height: '36px', 
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          {stats.isClockedIn ? <FiClock /> : <FiBell />}
+        </div>
+        <div>
+          <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+            {stats.isClockedIn ? 'Session Active' : 'Attendance Requirement'}
+          </div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            {stats.isClockedIn 
+              ? 'Your presence is recorded. Remember to clock out at the end of your shift.' 
+              : 'You have not yet clocked in for today. Please visit the Attendance tab.'}
+          </div>
+        </div>
       </div>
 
-      {/* Role-Based Content Grid */}
-      <div className="card-grid">
-        {dashboardContent?.sections.map((section, idx) => (
-          <div key={idx} className="card">
-            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>
-              {section.icon}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+        {getDashboardModules().map((module, idx) => (
+          <div key={idx} className="card dashboard-module" style={{ animation: `fadeIn 0.5s ease-out ${idx * 0.1}s both` }}>
+            <div style={{ 
+              fontSize: '1.4rem', 
+              color: 'var(--accent-color)', 
+              background: 'rgba(59, 130, 246, 0.05)',
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px',
+              marginBottom: '1.25rem'
+            }}>
+              {module.icon}
             </div>
-            <h3>{section.title}</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              {section.content}
-            </p>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{module.title}</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>{module.content}</p>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              color: 'var(--accent-color)', 
+              fontSize: '0.8rem', 
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}>
+              Sync Details <FiArrowRight />
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Security Notice */}
-      {riskLevel !== 'LOW' && (
-        <div
-          style={{
-            background: getRiskColor(),
-            color: 'white',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            marginTop: '20px',
-            fontWeight: '500',
-          }}
-        >
-          ⚠️ Your trust score is {riskLevel}. Please review your account activity.
-        </div>
-      )}
-
-      {/* Standard Info Cards */}
-      <div className="card-grid" style={{ marginTop: '20px' }}>
-        <div className="card">
-          <h3>Recent Updates</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Ensure all security guidelines are followed carefully. Your activity on this network is monitored.
-          </p>
-        </div>
-        <div className="card">
-          <h3>System Status</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            All systems operational. Network security is optimal.
-          </p>
-        </div>
+      {/* Real-Time Productivity Section */}
+      <div style={{ marginTop: '4rem' }}>
+         <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FiActivity style={{ color: 'var(--security-green)' }} /> Live Productivity Metrics
+         </h2>
+         <div className="card" style={{ padding: '2.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '2rem' }}>
+               <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>Attendance Logged</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800 }}>{stats.attendanceStreak} Days</div>
+               </div>
+               <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>Task Accuracy</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--security-green)' }}>{stats.taskAccuracy}%</div>
+               </div>
+               <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>Pending Tasks</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: stats.pendingTasks > 3 ? 'var(--danger-color)' : 'var(--text-primary)' }}>{stats.pendingTasks ?? 0}</div>
+               </div>
+               <div>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '8px' }}>Project Status</div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent-color)' }}>{stats.taskAccuracy >= 90 ? 'Ahead' : 'On Track'}</div>
+               </div>
+            </div>
+         </div>
       </div>
+
+      <style>{`
+        .dashboard-module:hover {
+          background: rgba(255, 255, 255, 0.03);
+          border-color: var(--accent-color);
+          transform: translateY(-4px);
+        }
+      `}</style>
     </div>
   );
 };

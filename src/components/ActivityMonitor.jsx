@@ -10,82 +10,80 @@ const ActivityMonitor = () => {
 
   // 1. Navigation Tracking
   useEffect(() => {
-    const pageName = location.pathname === '/' ? '/dashboard' : location.pathname;
+    const employeeId = sessionStorage.getItem('employeeId');
+    const path = location.pathname;
     
-    // Map paths to readable actions
-    let action = `Visited ${pageName}`;
-    if (pageName.includes('admin')) action = 'Admin page attempt';
-    if (pageName.includes('confidential')) action = 'Restricted page attempt';
-    if (pageName.includes('dashboard')) action = 'Dashboard visit';
-    if (pageName.includes('profile')) action = 'Profile visit';
-    if (pageName.includes('attendance')) action = 'Attendance page visit';
-    if (pageName.includes('tasks')) action = 'Tasks page visit';
-    if (pageName.includes('salary')) action = 'Salary page visit';
+    // Professional telemetry labels
+    let action = `NAV_EVENT: ${path}`;
+    
+    if (path.includes('admin')) action = 'SYSTEM_ADMIN_ACCESS_ATTEMPT';
+    if (path.includes('confidential')) action = 'RESTRICTED_DATA_ACCESS_TRIGGER';
+    if (path === '/portal' || path === '/portal/') action = 'DASHBOARD_HEARTBEAT_INITIALIZED';
+    if (path.includes('profile')) action = 'PROFILE_DOSSIER_VIEW';
+    if (path.includes('attendance')) action = 'ATTENDANCE_LOG_SYNC';
+    if (path.includes('tasks')) action = 'WORKFLOW_TASK_BOARD_VIEW';
+    if (path.includes('salary')) action = 'PAYROLL_LEDGER_REVIEW';
 
-    // We don't log the login page visit itself to avoid noise, 
-    // unless you want tracking there. Let's just avoid root /login noise.
-    if (pageName !== '/login') {
-      logActivity(null, action);
+    // Filter noise
+    if (path !== '/login' && path !== '/') {
+      logActivity(employeeId, action);
     }
   }, [location.pathname]);
 
   // 2. Behavioral Tracking (DOM events)
   useEffect(() => {
-    // Record rapid clicks (e.g. 5 clicks within 2 seconds)
+    // Record rapid clicks (High-frequency interaction)
     const handleGlobalClick = () => {
       clickCount.current += 1;
       
       if (!clickTimer.current) {
         clickTimer.current = setTimeout(() => {
-          if (clickCount.current >= 5) {
-            logActivity(null, 'Rapid clicks detected');
+          if (clickCount.current >= 8) {
+            logActivity(null, 'ANOMALY: RAPID_CLICK_SEQUENCE_DETECTED');
           }
           clickCount.current = 0;
           clickTimer.current = null;
-        }, 2000);
+        }, 1500);
       }
       
       resetIdle();
     };
 
-    // Idle detection
+    // Idle detection - 30 seconds threshold for Zero Trust
     const handleIdle = () => {
-      logActivity(null, 'User idle time detected');
+      logActivity(null, 'IDLE_TIMEOUT: USER_INACTIVE_30S');
     };
 
     const resetIdle = () => {
       if (idleTimer.current) clearTimeout(idleTimer.current);
-      idleTimer.current = setTimeout(handleIdle, 5 * 60 * 1000); // 5 minutes idle
+      idleTimer.current = setTimeout(handleIdle, 30 * 1000); 
     };
 
-    // Tab visibility (switch tabs)
+    // Tab visibility (Context switching)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        logActivity(null, 'Tab switch or minimized');
+        logActivity(null, 'CONTEXT_SWITCH: TAB_MINIMIZED_OR_INACTIVE');
       } else {
-        logActivity(null, 'Returned to tab');
+        logActivity(null, 'CONTEXT_RETURN: TAB_REGAINED_FOCUS');
       }
     };
 
     // Browser Refresh / Window Close
     const handleBeforeUnload = () => {
-      logActivity(null, 'Browser refresh or close window');
+      logActivity(null, 'SESSION_EVENT: BROWSER_TERMINATION_OR_REFRESH');
     };
 
-    // Multiple Tab Detection
-    const tabId = Math.random().toString(36).substring(2, 9);
+    // Multiple Tab detection
+    const tabId = Math.random().toString(36).substring(2, 10);
+    localStorage.setItem('portal_gate_ping', tabId);
     
     const handleTabPing = (e) => {
-      if (e.key === 'tabPing' && e.newValue !== tabId) {
-        // Someone else pinged
-        logActivity(null, 'Multiple tab usage detected');
+      if (e.key === 'portal_gate_ping' && e.newValue !== tabId) {
+        logActivity(null, 'IDENTITY_ALERT: MULTIPLE_SIMULTANEOUS_SESSIONS');
       }
     };
 
-    // Register active tab
-    localStorage.setItem('tabPing', tabId);
     window.addEventListener('storage', handleTabPing);
-
     document.addEventListener('click', handleGlobalClick);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -103,7 +101,7 @@ const ActivityMonitor = () => {
     };
   }, []);
 
-  return null; // Silent component
+  return null;
 };
 
 export default ActivityMonitor;

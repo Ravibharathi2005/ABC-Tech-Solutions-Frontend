@@ -2,144 +2,130 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  FiHome,
+  FiGrid,
   FiUser,
-  FiCheckCircle,
+  FiCheckSquare,
   FiClock,
-  FiLock,
   FiDollarSign,
   FiFileText,
-  FiSettings,
-  FiShield,
-  FiAlertCircle,
+  FiActivity,
+  FiLayout,
 } from 'react-icons/fi';
 
 const Sidebar = () => {
   const { role } = useAuth();
 
-  // Define menu items based on role
   const getMenuItems = () => {
     const commonItems = [
-      { to: '/', label: 'Dashboard', icon: FiHome, section: 'main' },
-      { to: '/profile', label: 'Profile', icon: FiUser, section: 'main' },
+      { to: '/portal', label: 'Dashboard', icon: FiLayout, section: 'core' },
+      { to: '/portal/profile', label: 'Personal Profile', icon: FiUser, section: 'core' },
     ];
 
     const roleMenus = {
       SUPER_ADMIN: [
         ...commonItems,
-        { to: '/admin', label: 'User Management', icon: FiSettings, section: 'admin' },
-        { to: '/admin', label: 'System Settings', icon: FiLock, section: 'admin' },
-        { to: '/admin', label: 'Audit Logs', icon: FiFileText, section: 'admin' },
-        { to: '/admin', label: 'Security Alerts', icon: FiAlertCircle, section: 'admin' },
-        { to: '/salary', label: 'Salary Data', icon: FiDollarSign, section: 'secured' },
-        { to: '/confidential', label: 'Confidential Reports', icon: FiFileText, section: 'secured' },
+        { to: '/portal/tasks', label: 'Task Board', icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
+        { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'restricted' },
+        { to: '/portal/confidential', label: 'Confidential Reports', icon: FiFileText, section: 'restricted' },
       ],
       ADMIN: [
         ...commonItems,
-        { to: '/tasks', label: 'Tasks', icon: FiCheckCircle, section: 'main' },
-        { to: '/attendance', label: 'Attendance', icon: FiClock, section: 'main' },
-        { to: '/admin', label: 'Admin Panel', icon: FiLock, section: 'admin' },
-        { to: '/salary', label: 'Salary Data', icon: FiDollarSign, section: 'secured' },
+        { to: '/portal/tasks', label: 'Task Board', icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
+        { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'restricted' },
+        { to: '/portal/confidential', label: 'Confidential Reports', icon: FiFileText, section: 'restricted' },
       ],
       HR: [
         ...commonItems,
-        { to: '/attendance', label: 'Attendance', icon: FiClock, section: 'main' },
-        { to: '/salary', label: 'Salary Data', icon: FiDollarSign, section: 'main' },
-        { to: '/tasks', label: 'Employee Requests', icon: FiCheckCircle, section: 'main' },
+        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
+        { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'core' },
+        { to: '/portal/tasks', label: 'Employee Tasks', icon: FiCheckSquare, section: 'core' },
       ],
       MANAGER: [
         ...commonItems,
-        { to: '/tasks', label: 'Tasks', icon: FiCheckCircle, section: 'main' },
-        { to: '/attendance', label: 'Team Attendance', icon: FiClock, section: 'main' },
+        { to: '/portal/tasks', label: 'Team Tasks', icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance', label: 'Team Attendance', icon: FiClock, section: 'core' },
       ],
       SECURITY_ANALYST: [
         ...commonItems,
-        { to: '/admin', label: 'Security Monitoring', icon: FiShield, section: 'admin' },
-        { to: '/admin', label: 'Alerts', icon: FiAlertCircle, section: 'admin' },
+        { to: '/portal/confidential', label: 'Personnel Reports', icon: FiFileText, section: 'restricted' },
       ],
       EMPLOYEE: [
         ...commonItems,
-        { to: '/tasks', label: 'Tasks', icon: FiCheckCircle, section: 'main' },
-        { to: '/attendance', label: 'Attendance', icon: FiClock, section: 'main' },
+        { to: '/portal/tasks', label: 'My Tasks', icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
       ],
     };
 
     return roleMenus[role] || commonItems;
   };
 
-  const menuItems = getMenuItems();
-  const mainItems = menuItems.filter(item => item.section === 'main');
-  const securedItems = menuItems.filter(item => item.section === 'admin' || item.section === 'secured');
+  const items = getMenuItems();
+  const coreItems = items.filter(i => i.section === 'core');
+  const restrictedItems = items.filter(i => i.section === 'restricted');
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">
-        ABC Tech
-        <div style={{ fontSize: '0.75rem', marginTop: '4px', opacity: 0.7 }}>
-          Role: {role}
+      <div className="sidebar-header" style={{ flexDirection: 'column', height: '140px', justifyContent: 'center', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+           <FiGrid style={{ color: 'var(--accent-color)', fontSize: '1.8rem' }} />
+           <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.05em' }}>PORTAL</span>
+        </div>
+        <div style={{ 
+          fontSize: '0.7rem', 
+          fontWeight: 800, 
+          background: 'rgba(59, 130, 246, 0.1)', 
+          color: 'var(--accent-color)', 
+          padding: '4px 12px', 
+          borderRadius: '6px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em'
+        }}>
+          {role?.replace('_', ' ') || 'EMPLOYEE'}
         </div>
       </div>
-      <nav className="sidebar-nav">
-        {/* Main Navigation */}
-        {mainItems.length > 0 && (
-          <>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                paddingLeft: '1rem',
-                marginTop: '1rem',
-                textTransform: 'uppercase',
-              }}
-            >
-              Main Nav
-            </span>
-            {mainItems.map((item, idx) => {
-              const IconComponent = item.icon;
-              return (
-                <NavLink
-                  key={idx}
-                  to={item.to}
-                  className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-                >
-                  <IconComponent /> {item.label}
-                </NavLink>
-              );
-            })}
-          </>
-        )}
 
-        {/* Secured/Admin Section */}
-        {securedItems.length > 0 && (
+      <nav className="sidebar-nav">
+        <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-secondary)', padding: '1.5rem 1rem 1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+           Navigation
+        </div>
+        
+        {coreItems.map((item, idx) => (
+          <NavLink
+            key={idx}
+            to={item.to}
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
+            <item.icon /> {item.label}
+          </NavLink>
+        ))}
+
+        {restrictedItems.length > 0 && (
           <>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                paddingLeft: '1rem',
-                marginTop: '2rem',
-                textTransform: 'uppercase',
-              }}
-            >
-              Secured
-            </span>
-            {securedItems.map((item, idx) => {
-              const IconComponent = item.icon;
-              return (
-                <NavLink
-                  key={idx}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    isActive ? 'nav-link danger active' : 'nav-link danger'
-                  }
-                >
-                  <IconComponent /> {item.label}
-                </NavLink>
-              );
-            })}
+            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-secondary)', padding: '2.5rem 1rem 1rem', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+               Management
+            </div>
+            {restrictedItems.map((item, idx) => (
+              <NavLink
+                key={idx}
+                to={item.to}
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              >
+                <item.icon /> {item.label}
+              </NavLink>
+            ))}
           </>
         )}
       </nav>
+
+      <div style={{ padding: '2rem', borderTop: '1px solid var(--border-color)', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--security-green)' }}></div>
+            SECURE SESSION ACTIVE
+         </div>
+         SYSTEM v4.2.0
+      </div>
     </aside>
   );
 };

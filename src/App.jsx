@@ -12,7 +12,6 @@ import AdminPanel from "./pages/AdminPanel";
 import SalaryPage from "./pages/SalaryPage";
 import ConfidentialReports from "./pages/ConfidentialReports";
 import SecurityWrapper from "./components/SecurityWrapper";
-import ActivityMonitor from "./components/ActivityMonitor"; // <-- Inject Telemetry component
 
 function AppRoutes() {
   const location = useLocation();
@@ -21,8 +20,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Telemetry hook injected at standard namespace layout level */}
-      <Route element={<><ActivityMonitor /><Outlet /></>}>
+      <Route element={<Outlet />}>
       {/* Root route */}
       <Route
         path="/"

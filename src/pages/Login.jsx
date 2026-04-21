@@ -1,10 +1,9 @@
-// File: src/pages/Login.jsx
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import { logActivity } from "../utils/activityLogger";
+import { FiShield, FiUser, FiLock, FiActivity, FiArrowRight } from "react-icons/fi";
 
 const Login = () => {
   const [empId, setEmpId] = useState("");
@@ -33,14 +32,16 @@ const Login = () => {
         }
       );
 
-      const { token, role, trustScore, riskLevel, user } = res.data;
+      const { token, role, user, employeeId: resEmpId } = res.data;
 
-      // Save to auth context with full user data
+      // Robust role extraction (handle both standard and biometric payloads)
+      const finalRole = role || user?.role;
+      const finalEmpId = resEmpId || user?.employeeId || empId;
+
+      // Save to auth context with personnel data only
       login({
-        employeeId: empId,
-        role,
-        trustScore,
-        riskLevel,
+        employeeId: finalEmpId,
+        role: finalRole,
         token,
         user,
       });
@@ -48,13 +49,9 @@ const Login = () => {
       sessionStorage.setItem("portalUser", empId);
       sessionStorage.setItem("token", token);
       localStorage.removeItem("failedLoginAttempts");
+      localStorage.removeItem("forceLogout");
 
-      // Log successful login activity
-      await logActivity(empId, "Login success", {
-        riskLevel,
-        role,
-      });
-
+      await logActivity(empId, "Login success", { role });
       navigate("/portal");
     } catch (err) {
       console.error("Login Error:", err);
@@ -67,15 +64,12 @@ const Login = () => {
       localStorage.setItem("failedLoginAttempts", fails);
 
       let actionToLog = "Failed login attempt";
-      let riskLevel = "Medium";
 
       if (fails >= 3) {
-        actionToLog = "Too many failed attempts";
-        riskLevel = "High";
+        actionToLog = "Multiple failed authentication attempts";
       }
 
       await logActivity(empId, actionToLog, {
-        riskLevel,
         errorGiven: errorMessage,
         attempts: fails,
       });
@@ -89,37 +83,105 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2>Corporate Portal</h2>
-        <p>ABC Tech Solutions Security Simulation</p>
+        {/* Logo Placeholder */}
+        <div className="auth-logo-area">
+          <div className="auth-logo-circle">
+            <FiShield />
+          </div>
+          <h2>ABC Tech Solutions</h2>
+          <div style={{ 
+            fontSize: '0.75rem', 
+            fontWeight: 800, 
+            color: 'var(--accent-color)', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.2em',
+            marginTop: '10px'
+          }}>
+            Secure Enterprise Node
+          </div>
+        </div>
 
         <form onSubmit={handleLogin}>
-          <div className="input-group">
-            <label>Employee ID</label>
-            <input
-              type="text"
-              placeholder="e.g. EMP001"
-              value={empId}
-              onChange={(e) => setEmpId(e.target.value)}
-              required
-            />
+          <div className="input-container">
+            <div className="input-group">
+              <label>Employee Identifier</label>
+              <div style={{ position: 'relative' }}>
+                <FiUser style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="text"
+                  placeholder="e.g. EMP1001"
+                  value={empId}
+                  onChange={(e) => setEmpId(e.target.value)}
+                  required
+                  style={{ paddingLeft: '3rem' }}
+                />
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Security Key</label>
+              <div style={{ position: 'relative' }}>
+                <FiLock style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  style={{ paddingLeft: '3rem' }}
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="input-group">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? "Authenticating..." : "Authenticate"}
+          <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', marginTop: '1rem' }}>
+            {loading ? "Decrypting..." : (
+               <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                 Establish Uplink <FiArrowRight />
+               </span>
+            )}
           </button>
         </form>
+
+        {/* Trust Indicators */}
+        <div style={{ 
+          marginTop: '3rem', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: '2rem', 
+          opacity: 0.5,
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <FiActivity style={{ color: 'var(--security-green)' }} /> AES-256
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <FiShield style={{ color: 'var(--accent-color)' }} /> Zero-Trust
+          </div>
+        </div>
       </div>
+
+      <style>{`
+        input {
+          width: 100%;
+          padding: 1.125rem 1.25rem;
+          border-radius: 16px;
+          border: 1px solid var(--border-color);
+          background: rgba(0, 0, 0, 0.2);
+          color: var(--text-primary);
+          outline: none;
+          font-weight: 500;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        input:focus {
+          border-color: var(--accent-color);
+          background: rgba(0, 0, 0, 0.4);
+          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+      `}</style>
     </div>
   );
 };
