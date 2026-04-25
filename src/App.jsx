@@ -11,6 +11,8 @@ import Attendance from "./pages/Attendance";
 import AdminPanel from "./pages/AdminPanel";
 import SalaryPage from "./pages/SalaryPage";
 import ConfidentialReports from "./pages/ConfidentialReports";
+import Leave from "./pages/Leave";
+import Reports from "./pages/Reports";
 import SecurityWrapper from "./components/SecurityWrapper";
 
 function AppRoutes() {
@@ -58,6 +60,8 @@ function AppRoutes() {
         <Route path="attendance" element={<Attendance />} />
         <Route path="admin" element={<AdminPanel />} />
         <Route path="salary" element={<SalaryPage />} />
+        <Route path="leave" element={<Leave />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="confidential" element={<ConfidentialReports />} />
       </Route>
 

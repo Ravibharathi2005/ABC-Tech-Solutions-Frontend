@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { logActivity } from '../utils/activityLogger';
-import { FiCheckSquare, FiPlay, FiCheck, FiActivity, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
+import { FiCheckSquare, FiPlay, FiCheck, FiActivity, FiCheckCircle, FiClock, FiAlertCircle, FiSearch, FiFilter } from 'react-icons/fi';
 import axios from 'axios';
 
 const Tasks = () => {
   const { employeeId, token } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('ALL');
 
   useEffect(() => {
     logActivity(employeeId, "TASK_VIEW", "Reviewing assigned tasks");
@@ -60,11 +62,18 @@ const Tasks = () => {
     }
   };
 
+  const filteredTasks = tasks.filter(t => {
+    const matchesSearch = t.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (t.category && t.category.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesPriority = priorityFilter === 'ALL' || t.priority === priorityFilter;
+    return matchesSearch && matchesPriority;
+  });
+
   const TaskColumn = ({ title, status, icon, color }) => (
     <div style={{ 
       background: 'rgba(15, 23, 42, 0.4)', 
       borderRadius: '24px', 
-      padding: '2rem', 
+      padding: '1.5rem', 
       minHeight: '600px', 
       border: '1px solid var(--border-color)',
       display: 'flex',
@@ -85,17 +94,18 @@ const Tasks = () => {
           fontWeight: 800,
           color: 'var(--text-secondary)'
         }}>
-          {tasks.filter(t => t.status === status).length}
+          {filteredTasks.filter(t => t.status === status).length}
         </span>
       </div>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        {tasks.filter(t => t.status === status).map((task, idx) => (
-           <div key={task._id} className="card" style={{ 
+        {filteredTasks.filter(t => t.status === status).map((task, idx) => (
+           <div key={task._id} className="card task-hover" style={{ 
              padding: '1.5rem', 
              borderLeft: `4px solid ${getPriorityColor(task.priority)}`,
              animation: `slideIn 0.4s ease-out ${idx * 0.1}s both`,
-             background: 'var(--bg-card)'
+             background: 'var(--bg-card)',
+             transition: 'transform 0.2s, box-shadow 0.2s'
            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                 <span style={{ 
@@ -109,7 +119,7 @@ const Tasks = () => {
                 }}>{task.priority}</span>
                 <span style={{ 
                   fontSize: '0.75rem', 
-                  color: 'var(--text-secondary)',
+                  color: new Date(task.deadline) < new Date() ? 'var(--danger-color)' : 'var(--text-secondary)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
@@ -118,7 +128,8 @@ const Tasks = () => {
               </div>
               
               <h4 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '0.75rem', lineHeight: 1.4 }}>{task.title}</h4>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Project: {task.category || 'Standard'}</p>
+              {task.description && <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>{task.description}</p>}
+              <p style={{ fontSize: '0.8rem', color: 'var(--accent-color)', marginBottom: '1.5rem', fontWeight: 600 }}>Project: {task.category || 'Standard'}</p>
               
               <div style={{ display: 'flex', gap: '10px' }}>
                 {status === 'TODO' && (
@@ -139,10 +150,10 @@ const Tasks = () => {
               </div>
            </div>
         ))}
-        {tasks.filter(t => t.status === status).length === 0 && !loading && (
+        {filteredTasks.filter(t => t.status === status).length === 0 && !loading && (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', border: '1px dashed var(--border-color)', borderRadius: '16px', opacity: 0.5 }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}><FiAlertCircle /></div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>No tasks in this category.</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>No tasks found.</div>
           </div>
         )}
       </div>
@@ -151,18 +162,48 @@ const Tasks = () => {
 
   return (
     <div className="page-container" style={{ animation: 'fadeIn 0.8s ease-out' }}>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ marginBottom: '0.25rem' }}>Task Management</h1>
           <p>Organize and track your assigned project deliverables.</p>
         </div>
+
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+             <FiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+             <input type="text" placeholder="Search tasks..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{
+                padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', width: '250px'
+             }} />
+          </div>
+          {/* Priority Filter */}
+          <div style={{ position: 'relative' }}>
+             <FiFilter style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+             <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} style={{
+                padding: '0.75rem 1rem 0.75rem 2.5rem', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', appearance: 'none'
+             }}>
+                <option value="ALL">All Priorities</option>
+                <option value="LOW">Low Priority</option>
+                <option value="MEDIUM">Medium Priority</option>
+                <option value="HIGH">High Priority</option>
+                <option value="URGENT">Urgent</option>
+             </select>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem' }}>
         <TaskColumn title="Pending" status="TODO" icon={<FiCheckSquare />} color="var(--accent-color)" />
         <TaskColumn title="In Progress" status="IN_PROGRESS" icon={<FiActivity />} color="#f59e0b" />
         <TaskColumn title="Completed" status="DONE" icon={<FiCheckCircle />} color="var(--security-green)" />
       </div>
+      
+      <style>{`
+         .task-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important;
+         }
+      `}</style>
     </div>
   );
 };

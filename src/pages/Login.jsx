@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import { logActivity } from "../utils/activityLogger";
@@ -9,15 +9,34 @@ const Login = () => {
   const [empId, setEmpId] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle cross-app redirection logic
+  React.useEffect(() => {
+    const monitoringSession = searchParams.get("monitoringSession");
+    const externalEmpId = searchParams.get("empId");
+
+    if (monitoringSession === "true" && externalEmpId) {
+      setEmpId(externalEmpId.toUpperCase());
+    }
+  }, [searchParams]);
+
+  const isLocked = searchParams.get("monitoringSession") === "true";
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     if (!empId.trim() || !password.trim()) {
-      alert("Enter Employee ID and Password");
+      showToast("Enter Employee ID and Password");
       return;
     }
 
@@ -29,6 +48,7 @@ const Login = () => {
         {
           employeeId: empId,
           password: password,
+          appType: "SECURITY"
         }
       );
 
@@ -46,12 +66,10 @@ const Login = () => {
         user,
       });
 
-      sessionStorage.setItem("portalUser", empId);
-      sessionStorage.setItem("token", token);
       localStorage.removeItem("failedLoginAttempts");
       localStorage.removeItem("forceLogout");
 
-      await logActivity(empId, "Login success", { role });
+      await logActivity(empId, "Login success", { role: finalRole });
       navigate("/portal");
     } catch (err) {
       console.error("Login Error:", err);
@@ -74,7 +92,7 @@ const Login = () => {
         attempts: fails,
       });
 
-      alert(`Server Error: ${errorMessage}`);
+      showToast(`Server Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -89,11 +107,11 @@ const Login = () => {
             <FiShield />
           </div>
           <h2>ABC Tech Solutions</h2>
-          <div style={{ 
-            fontSize: '0.75rem', 
-            fontWeight: 800, 
-            color: 'var(--accent-color)', 
-            textTransform: 'uppercase', 
+          <div style={{
+            fontSize: '0.75rem',
+            fontWeight: 800,
+            color: 'var(--accent-color)',
+            textTransform: 'uppercase',
             letterSpacing: '0.2em',
             marginTop: '10px'
           }}>
@@ -111,7 +129,8 @@ const Login = () => {
                   type="text"
                   placeholder="e.g. EMP1001"
                   value={empId}
-                  onChange={(e) => setEmpId(e.target.value)}
+                  onChange={(e) => !isLocked && setEmpId(e.target.value)}
+                  readOnly={isLocked}
                   required
                   style={{ paddingLeft: '3rem' }}
                 />
@@ -136,19 +155,19 @@ const Login = () => {
 
           <button type="submit" className="btn-primary" disabled={loading} style={{ width: '100%', marginTop: '1rem' }}>
             {loading ? "Decrypting..." : (
-               <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                 Establish Uplink <FiArrowRight />
-               </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                Establish Uplink <FiArrowRight />
+              </span>
             )}
           </button>
         </form>
 
         {/* Trust Indicators */}
-        <div style={{ 
-          marginTop: '3rem', 
-          display: 'flex', 
-          justifyContent: 'center', 
-          gap: '2rem', 
+        <div style={{
+          marginTop: '3rem',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '2rem',
           opacity: 0.5,
           fontSize: '0.65rem',
           fontWeight: 700,
@@ -164,7 +183,20 @@ const Login = () => {
         </div>
       </div>
 
+      {/* Custom Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed', bottom: '2rem', right: '2rem', background: 'var(--danger-color)', color: 'white', padding: '1rem 1.5rem', borderRadius: '8px', fontWeight: 700, boxShadow: '0 10px 25px rgba(239, 68, 68, 0.4)', display: 'flex', alignItems: 'center', gap: '10px', animation: 'slideUp 0.3s ease-out', zIndex: 1000
+        }}>
+          {toastMessage}
+        </div>
+      )}
+
       <style>{`
+         @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+         }
         input {
           width: 100%;
           padding: 1.125rem 1.25rem;

@@ -10,6 +10,8 @@ import {
   FiFileText,
   FiActivity,
   FiLayout,
+  FiCalendar,
+  FiBarChart2,
 } from 'react-icons/fi';
 
 const Sidebar = () => {
@@ -19,6 +21,7 @@ const Sidebar = () => {
     const commonItems = [
       { to: '/portal', label: 'Dashboard', icon: FiLayout, section: 'core' },
       { to: '/portal/profile', label: 'Personal Profile', icon: FiUser, section: 'core' },
+      { to: '/portal/leave', label: 'Leave Management', icon: FiCalendar, section: 'core' },
     ];
 
     const roleMenus = {
@@ -27,6 +30,7 @@ const Sidebar = () => {
         { to: '/portal/tasks', label: 'Task Board', icon: FiCheckSquare, section: 'core' },
         { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
         { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'restricted' },
+        { to: '/portal/reports', label: 'Analytics & Reports', icon: FiBarChart2, section: 'restricted' },
         { to: '/portal/confidential', label: 'Confidential Reports', icon: FiFileText, section: 'restricted' },
       ],
       ADMIN: [
@@ -34,6 +38,7 @@ const Sidebar = () => {
         { to: '/portal/tasks', label: 'Task Board', icon: FiCheckSquare, section: 'core' },
         { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
         { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'restricted' },
+        { to: '/portal/reports', label: 'Analytics & Reports', icon: FiBarChart2, section: 'restricted' },
         { to: '/portal/confidential', label: 'Confidential Reports', icon: FiFileText, section: 'restricted' },
       ],
       HR: [
@@ -41,11 +46,13 @@ const Sidebar = () => {
         { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
         { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'core' },
         { to: '/portal/tasks', label: 'Employee Tasks', icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/reports', label: 'Analytics & Reports', icon: FiBarChart2, section: 'restricted' },
       ],
       MANAGER: [
         ...commonItems,
         { to: '/portal/tasks', label: 'Team Tasks', icon: FiCheckSquare, section: 'core' },
         { to: '/portal/attendance', label: 'Team Attendance', icon: FiClock, section: 'core' },
+        { to: '/portal/reports', label: 'Team Reports', icon: FiBarChart2, section: 'restricted' },
       ],
       SECURITY_ANALYST: [
         ...commonItems,
@@ -55,10 +62,13 @@ const Sidebar = () => {
         ...commonItems,
         { to: '/portal/tasks', label: 'My Tasks', icon: FiCheckSquare, section: 'core' },
         { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
+        { to: '/portal/salary', label: 'My Salary', icon: FiDollarSign, section: 'core' },
       ],
     };
 
-    return roleMenus[role] || commonItems;
+    // Robust fallback: If role is still identifying, use EMPLOYEE as standard base
+    const activeRole = (role && roleMenus[role]) ? role : 'EMPLOYEE';
+    return roleMenus[activeRole] || commonItems;
   };
 
   const items = getMenuItems();
@@ -78,11 +88,10 @@ const Sidebar = () => {
           background: 'rgba(59, 130, 246, 0.1)', 
           color: 'var(--accent-color)', 
           padding: '4px 12px', 
-          borderRadius: '6px',
           textTransform: 'uppercase',
           letterSpacing: '0.05em'
         }}>
-          {role?.replace('_', ' ') || 'EMPLOYEE'}
+          {role ? role.replace('_', ' ') : 'IDENTIFYING...'}
         </div>
       </div>
 

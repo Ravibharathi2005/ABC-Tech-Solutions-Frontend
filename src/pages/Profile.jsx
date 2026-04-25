@@ -5,11 +5,11 @@ import axios from 'axios';
 import { 
   FiUser, FiBriefcase, FiMail, FiPhone, FiInfo, 
   FiRefreshCw, FiMapPin, FiCalendar, FiClock,
-  FiHome, FiUsers, FiAward, FiSmartphone, FiShield
+  FiHome, FiUsers, FiAward, FiSmartphone, FiShield, FiStar
 } from 'react-icons/fi';
 
 const Profile = () => {
-  const { employeeId, role, token } = useAuth();
+  const { employeeId, role, token, user } = useAuth();
   const [employeeData, setEmployeeData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -68,6 +68,8 @@ const Profile = () => {
     );
   };
 
+  const trustScore = user?.riskScore !== undefined ? (100 - user.riskScore) : 95;
+
   return (
     <div className="page-container" style={{ animation: 'fadeIn 0.8s ease-out' }}>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -85,17 +87,17 @@ const Profile = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '3rem' }}>
         {/* Left Column: Personal Summary & Core Info */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-          <div className="card" style={{ textAlign: 'center', padding: '4rem 2.5rem', borderTop: '4px solid var(--accent-color)' }}>
+          <div className="card" style={{ textAlign: 'center', padding: '3rem 2.5rem', borderTop: '4px solid var(--accent-color)' }}>
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: '2rem' }}>
               <div style={{ 
-                width: '140px', 
-                height: '140px', 
+                width: '120px', 
+                height: '120px', 
                 borderRadius: '50%', 
                 background: 'var(--accent-color)', 
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '4rem',
+                fontSize: '3.5rem',
                 color: 'white',
                 fontWeight: 900,
                 boxShadow: '0 15px 30px rgba(59, 130, 246, 0.2)'
@@ -104,26 +106,34 @@ const Profile = () => {
               </div>
             </div>
 
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>{employeeData?.name}</h2>
-            <p style={{ color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2.5rem' }}>
-              {employeeData?.position} • {employeeData?.department}
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
+              {employeeData?.name || user?.name || (loading ? 'Loading Name...' : employeeId)}
+            </h2>
+            <p style={{ color: 'var(--accent-color)', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
+              {employeeData?.position || 'Staff'} • {employeeData?.department || user?.department || 'Operations'}
             </p>
             
-            <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
-               <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Employment Status</div>
-               <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--security-green)' }}>{employeeData?.status || 'ACTIVE'}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
+              <div style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                 <FiStar style={{ color: 'var(--security-green)' }} />
+                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--security-green)' }}>Score: {trustScore}/100</span>
+              </div>
+              <div style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                 <FiShield style={{ color: 'var(--accent-color)' }} />
+                 <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-color)' }}>{role ? role.replace('_', ' ') : 'EMPLOYEE'}</span>
+              </div>
             </div>
           </div>
 
           <div className="card">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)' }}>
               <FiBriefcase style={{ color: 'var(--accent-color)' }} /> Core Information
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {detailGroup(<FiCalendar />, "Joining Date", employeeData?.joiningDate)}
-              {detailGroup(<FiInfo />, "Employment Type", employeeData?.employmentType)}
-              {detailGroup(<FiShield />, "Salary Grade", employeeData?.salaryGrade)}
-              {detailGroup(<FiUsers />, "Reporting Manager", employeeData?.manager)}
+              {detailGroup(<FiCalendar />, "Joining Date", employeeData?.joiningDate || 'N/A')}
+              {detailGroup(<FiInfo />, "Employment Type", employeeData?.employmentType || 'Full-Time')}
+              {detailGroup(<FiShield />, "Salary Grade", employeeData?.salaryGrade || 'L1')}
+              {detailGroup(<FiUsers />, "Reporting Manager", employeeData?.manager || 'Unassigned')}
             </div>
           </div>
 
@@ -154,26 +164,26 @@ const Profile = () => {
         {/* Right Column: Contact & Personal Details */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
           <div className="card">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)' }}>
               <FiSmartphone style={{ color: 'var(--accent-color)' }} /> Contact & Location
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {detailGroup(<FiMail />, "Corporate Email", employeeData?.email)}
-              {detailGroup(<FiPhone />, "Mobile Number", employeeData?.phone)}
-              {detailGroup(<FiMapPin />, "Primary Location", employeeData?.workLocation)}
-              {detailGroup(<FiClock />, "Shift Details", employeeData?.shift)}
-              {detailGroup(<FiHome />, "Residential Address", employeeData?.address)}
-              {detailGroup(<FiSmartphone />, "Emergency Contact", employeeData?.emergencyContact)}
+              {detailGroup(<FiMail />, "Corporate Email", employeeData?.email || user?.email || 'N/A')}
+              {detailGroup(<FiPhone />, "Mobile Number", employeeData?.phone || 'N/A')}
+              {detailGroup(<FiMapPin />, "Primary Location", employeeData?.workLocation || 'HQ')}
+              {detailGroup(<FiClock />, "Shift Details", employeeData?.shift || 'Morning Shift')}
+              {detailGroup(<FiHome />, "Residential Address", employeeData?.address || 'N/A')}
+              {detailGroup(<FiSmartphone />, "Emergency Contact", employeeData?.emergencyContact || 'N/A')}
             </div>
           </div>
 
           <div className="card">
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)' }}>
               <FiUser style={{ color: 'var(--accent-color)' }} /> Personal Details
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {detailGroup(<FiCalendar />, "Date of Birth", employeeData?.dob)}
-              {detailGroup(<FiInfo />, "Gender Identity", employeeData?.gender)}
+              {detailGroup(<FiCalendar />, "Date of Birth", employeeData?.dob || 'N/A')}
+              {detailGroup(<FiInfo />, "Gender Identity", employeeData?.gender || 'N/A')}
             </div>
           </div>
         </div>
