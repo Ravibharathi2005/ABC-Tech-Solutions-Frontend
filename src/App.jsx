@@ -4,6 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
+import ActivityMonitor from "./components/ActivityMonitor";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Tasks from "./pages/Tasks";
@@ -75,6 +76,7 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <ActivityMonitor />
         <AppRoutes />
       </BrowserRouter>
     </AuthProvider>

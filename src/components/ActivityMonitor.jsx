@@ -13,20 +13,38 @@ const ActivityMonitor = () => {
     const employeeId = sessionStorage.getItem('employeeId');
     const path = location.pathname;
     
-    // Professional telemetry labels
-    let action = `NAV_EVENT: ${path}`;
+    let pageName = 'Unknown Page';
     
-    if (path.includes('admin')) action = 'SYSTEM_ADMIN_ACCESS_ATTEMPT';
-    if (path.includes('confidential')) action = 'RESTRICTED_DATA_ACCESS_TRIGGER';
-    if (path === '/portal' || path === '/portal/') action = 'DASHBOARD_HEARTBEAT_INITIALIZED';
-    if (path.includes('profile')) action = 'PROFILE_DOSSIER_VIEW';
-    if (path.includes('attendance')) action = 'ATTENDANCE_LOG_SYNC';
-    if (path.includes('tasks')) action = 'WORKFLOW_TASK_BOARD_VIEW';
-    if (path.includes('salary')) action = 'PAYROLL_LEDGER_REVIEW';
+    if (path === '/portal' || path === '/portal/') pageName = 'Dashboard';
+    else if (path.includes('admin')) pageName = 'Admin Panel';
+    else if (path.includes('confidential')) pageName = 'Confidential Reports';
+    else if (path.includes('profile')) pageName = 'Profile';
+    else if (path.includes('attendance')) pageName = 'Attendance';
+    else if (path.includes('tasks')) pageName = 'Tasks';
+    else if (path.includes('salary')) pageName = 'Salary';
+    else if (path.includes('leave')) pageName = 'Leave';
+    else if (path.includes('reports')) pageName = 'Reports';
+
+    let action = `PAGE_ACCESS: ${pageName}`;
+    if (pageName === 'Unknown Page') {
+      action = `NAV_EVENT: ${path}`;
+    }
 
     // Filter noise
     if (path !== '/login' && path !== '/') {
-      logActivity(employeeId, action);
+      logActivity(employeeId, action, { pageName, path });
+      
+      // Broadcast to Security Website
+      localStorage.setItem(
+        "portalActivity",
+        JSON.stringify({
+          type: "PAGE_ACCESS",
+          page: pageName,
+          route: path,
+          employeeId: employeeId,
+          time: Date.now()
+        })
+      );
     }
   }, [location.pathname]);
 
