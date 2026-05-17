@@ -8,10 +8,21 @@ const ActivityMonitor = () => {
   const clickTimer = useRef(null);
   const idleTimer = useRef(null);
 
+  // Deduplication ref — prevents double-logging the same route within 2 s
+  // (React StrictMode double-invokes effects in development)
+  const lastLogged = useRef({ path: null, time: 0 });
+
   // 1. Navigation Tracking
   useEffect(() => {
     const employeeId = sessionStorage.getItem('employeeId');
     const path = location.pathname;
+
+    // Skip if logged the same path within the last 2 seconds
+    const now = Date.now();
+    if (lastLogged.current.path === path && now - lastLogged.current.time < 2000) {
+      return;
+    }
+    lastLogged.current = { path, time: now };
     
     let pageName = 'Unknown Page';
     
@@ -24,6 +35,7 @@ const ActivityMonitor = () => {
     else if (path.includes('salary')) pageName = 'Salary';
     else if (path.includes('leave')) pageName = 'Leave';
     else if (path.includes('reports')) pageName = 'Reports';
+    else if (path.includes('tools')) pageName = 'Tools Hub';
 
     let action = `PAGE_ACCESS: ${pageName}`;
     if (pageName === 'Unknown Page') {
@@ -42,7 +54,7 @@ const ActivityMonitor = () => {
           page: pageName,
           route: path,
           employeeId: employeeId,
-          time: Date.now()
+          time: now
         })
       );
     }

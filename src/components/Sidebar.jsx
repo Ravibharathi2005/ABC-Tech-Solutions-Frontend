@@ -12,6 +12,9 @@ import {
   FiLayout,
   FiCalendar,
   FiBarChart2,
+  FiTool,
+  FiShield,
+  FiSettings,
 } from 'react-icons/fi';
 
 const Sidebar = () => {
@@ -22,47 +25,50 @@ const Sidebar = () => {
       { to: '/portal', label: 'Dashboard', icon: FiLayout, section: 'core' },
       { to: '/portal/profile', label: 'Personal Profile', icon: FiUser, section: 'core' },
       { to: '/portal/leave', label: 'Leave Management', icon: FiCalendar, section: 'core' },
+      { to: '/portal/tools', label: 'Tools Hub', icon: FiTool, section: 'core' },
     ];
 
     const roleMenus = {
       SUPER_ADMIN: [
         ...commonItems,
-        { to: '/portal/tasks', label: 'Task Board', icon: FiCheckSquare, section: 'core' },
-        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
-        { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'restricted' },
-        { to: '/portal/reports', label: 'Analytics & Reports', icon: FiBarChart2, section: 'restricted' },
-        { to: '/portal/confidential', label: 'Confidential Reports', icon: FiFileText, section: 'restricted' },
+        { to: '/portal/tasks',       label: 'Task Board',           icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance',  label: 'Attendance',           icon: FiClock,       section: 'core' },
+        { to: '/portal/salary',      label: 'Salary & Payroll',     icon: FiDollarSign,  section: 'restricted' },
+        { to: '/portal/reports',     label: 'Analytics & Reports',  icon: FiBarChart2,   section: 'restricted' },
+        { to: '/portal/confidential',label: 'Confidential Reports', icon: FiFileText,    section: 'restricted' },
+        { to: '/portal/admin',       label: 'Admin Panel',          icon: FiShield,      section: 'admin' },
       ],
       ADMIN: [
         ...commonItems,
-        { to: '/portal/tasks', label: 'Task Board', icon: FiCheckSquare, section: 'core' },
-        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
-        { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'restricted' },
-        { to: '/portal/reports', label: 'Analytics & Reports', icon: FiBarChart2, section: 'restricted' },
-        { to: '/portal/confidential', label: 'Confidential Reports', icon: FiFileText, section: 'restricted' },
+        { to: '/portal/tasks',       label: 'Task Board',           icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance',  label: 'Attendance',           icon: FiClock,       section: 'core' },
+        { to: '/portal/salary',      label: 'Salary & Payroll',     icon: FiDollarSign,  section: 'restricted' },
+        { to: '/portal/reports',     label: 'Analytics & Reports',  icon: FiBarChart2,   section: 'restricted' },
+        { to: '/portal/confidential',label: 'Confidential Reports', icon: FiFileText,    section: 'restricted' },
+        { to: '/portal/admin',       label: 'Admin Panel',          icon: FiShield,      section: 'admin' },
       ],
       HR: [
         ...commonItems,
-        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
-        { to: '/portal/salary', label: 'Salary & Payroll', icon: FiDollarSign, section: 'core' },
-        { to: '/portal/tasks', label: 'Employee Tasks', icon: FiCheckSquare, section: 'core' },
-        { to: '/portal/reports', label: 'Analytics & Reports', icon: FiBarChart2, section: 'restricted' },
+        { to: '/portal/attendance',  label: 'Attendance',           icon: FiClock,       section: 'core' },
+        { to: '/portal/salary',      label: 'Salary & Payroll',     icon: FiDollarSign,  section: 'core' },
+        { to: '/portal/tasks',       label: 'Employee Tasks',        icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/reports',     label: 'Analytics & Reports',  icon: FiBarChart2,   section: 'restricted' },
       ],
       MANAGER: [
         ...commonItems,
-        { to: '/portal/tasks', label: 'Team Tasks', icon: FiCheckSquare, section: 'core' },
-        { to: '/portal/attendance', label: 'Team Attendance', icon: FiClock, section: 'core' },
-        { to: '/portal/reports', label: 'Team Reports', icon: FiBarChart2, section: 'restricted' },
+        { to: '/portal/tasks',       label: 'Team Tasks',           icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance',  label: 'Team Attendance',      icon: FiClock,       section: 'core' },
+        { to: '/portal/reports',     label: 'Team Reports',         icon: FiBarChart2,   section: 'restricted' },
       ],
       SECURITY_ANALYST: [
         ...commonItems,
-        { to: '/portal/confidential', label: 'Personnel Reports', icon: FiFileText, section: 'restricted' },
+        { to: '/portal/reports',     label: 'Security Reports',     icon: FiBarChart2,   section: 'restricted' },
       ],
       EMPLOYEE: [
         ...commonItems,
-        { to: '/portal/tasks', label: 'My Tasks', icon: FiCheckSquare, section: 'core' },
-        { to: '/portal/attendance', label: 'Attendance', icon: FiClock, section: 'core' },
-        { to: '/portal/salary', label: 'My Salary', icon: FiDollarSign, section: 'core' },
+        { to: '/portal/tasks',       label: 'My Tasks',             icon: FiCheckSquare, section: 'core' },
+        { to: '/portal/attendance',  label: 'Attendance',           icon: FiClock,       section: 'core' },
+        { to: '/portal/salary',      label: 'My Salary',            icon: FiDollarSign,  section: 'core' },
       ],
     };
 
@@ -74,6 +80,7 @@ const Sidebar = () => {
   const items = getMenuItems();
   const coreItems = items.filter(i => i.section === 'core');
   const restrictedItems = items.filter(i => i.section === 'restricted');
+  const adminItems = items.filter(i => i.section === 'admin');
 
   return (
     <aside className="sidebar">
@@ -122,6 +129,24 @@ const Sidebar = () => {
                 className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
               >
                 <item.icon /> {item.label}
+              </NavLink>
+            ))}
+          </>
+        )}
+
+        {adminItems.length > 0 && (
+          <>
+            <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--danger-color)', padding: '2.5rem 1rem 1rem', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.7 }}>
+               Administration
+            </div>
+            {adminItems.map((item, idx) => (
+              <NavLink
+                key={idx}
+                to={item.to}
+                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+                style={{ borderLeft: '2px solid rgba(239,68,68,0.3)' }}
+              >
+                <item.icon style={{ color: 'var(--danger-color)' }} /> {item.label}
               </NavLink>
             ))}
           </>

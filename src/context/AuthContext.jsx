@@ -3,104 +3,127 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+// ─── Synchronous helpers ──────────────────────────────────────────────────────
+// Run synchronously BEFORE the first render so role/token are immediately available.
+// This eliminates the "Verifying permissions…" freeze after a page refresh.
+
+const isValid = (val) => val && val !== 'undefined' && val !== 'null';
+
+const readStorage = (key) => {
+  try {
+    const v = sessionStorage.getItem(key);
+    return isValid(v) ? v : null;
+  } catch {
+    return null;
+  }
+};
+
+const readUserStorage = () => {
+  try {
+    // Self-heal: migrate legacy portalUser key
+    const legacy = sessionStorage.getItem('portalUser');
+    if (legacy && isValid(legacy)) {
+      sessionStorage.setItem('employeeId', legacy);
+      sessionStorage.removeItem('portalUser');
+    }
+    const raw = sessionStorage.getItem('user');
+    return raw && isValid(raw) ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }) => {
-  const [employeeId, setEmployeeId] = useState(null);
-  const [role, setRole] = useState(null);
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  // Lazy initializers: read sessionStorage synchronously on the very first render.
+  // This means role, token, employeeId are never null on refresh — no flash/freeze.
+  const [employeeId, setEmployeeId] = useState(() => readStorage('employeeId'));
+  const [role,       setRole]       = useState(() => readStorage('role'));
+  const [token,      setToken]      = useState(() => readStorage('token'));
+  const [sessionId,  setSessionId]  = useState(() => readStorage('sessionId'));
+  const [user,       setUser]       = useState(() => readUserStorage());
 
   const logout = useCallback(() => {
     setEmployeeId(null);
     setRole(null);
     setUser(null);
     setToken(null);
+    setSessionId(null);
     sessionStorage.removeItem('employeeId');
     sessionStorage.removeItem('role');
     sessionStorage.removeItem('user');
     sessionStorage.removeItem('token');
+    sessionStorage.removeItem('sessionId');
   }, []);
 
   const login = useCallback((userData) => {
-    const { employeeId: id, role: userRole, token: userToken, user: userInfo } = userData;
+    const { employeeId: id, role: userRole, token: userToken, user: userInfo, sessionId: sid } = userData;
+
+    // Guard: never commit incomplete auth state to context or storage.
+    // If token or role are missing the login is not yet complete (e.g. MFA pending).
+    if (!userToken || !userRole || !id) {
+      console.warn('[Auth] login() called with incomplete data — skipping commit.', { id, userRole, hasToken: !!userToken });
+      return;
+    }
+
     setEmployeeId(id);
     setRole(userRole);
     setToken(userToken);
-    setUser(userInfo);
+    setUser(userInfo || null);
+    if (sid) setSessionId(sid);
 
+    // Only write valid strings — never write "undefined" or "null"
     sessionStorage.setItem('employeeId', id);
     sessionStorage.setItem('role', userRole);
     sessionStorage.setItem('token', userToken);
-    sessionStorage.setItem('user', JSON.stringify(userInfo));
+    if (userInfo) sessionStorage.setItem('user', JSON.stringify(userInfo));
+    if (sid) sessionStorage.setItem('sessionId', sid);
   }, []);
 
-  // Unified Synchronized Authentication Heartbeat
+  // ── Security heartbeat ────────────────────────────────────────────────────
+  // Validates the active session every 30 s.
+  // Requires 2 consecutive failures before forcing logout — prevents false
+  // kick-outs from transient network glitches or React StrictMode double-invoke.
   useEffect(() => {
     if (!token || !employeeId) return;
 
+    let failStreak = 0;
+    const MAX_FAILS = 2;
+
     const checkSync = async () => {
       try {
-        await axios.get("http://localhost:8080/api/auth/validate-sync", {
-          headers: { Authorization: `Bearer ${token}` }
+        await axios.get('http://localhost:8080/api/auth/validate-sync', {
+          headers: { Authorization: `Bearer ${token}` },
         });
+        failStreak = 0; // reset on success
       } catch (err) {
-        console.warn("Security Sync Lost: Forced termination of Portal session.");
-        logout();
+        failStreak += 1;
+        console.warn(`[Auth] Sync check failed (${failStreak}/${MAX_FAILS}).`, err?.response?.status);
+        if (failStreak >= MAX_FAILS) {
+          console.warn('[Auth] Security sync lost — terminating portal session.');
+          logout();
+        }
       }
     };
 
-    // Immediate check on initialization/route change
-    checkSync();
-
-    // Periodic heartbeat
-    const interval = setInterval(checkSync, 30000); // 30s interval
-    return () => clearInterval(interval);
+    // Delay the first heartbeat by 2 s to let React StrictMode settle
+    const firstCheck = setTimeout(checkSync, 2000);
+    const interval = setInterval(checkSync, 30000);
+    return () => {
+      clearTimeout(firstCheck);
+      clearInterval(interval);
+    };
   }, [token, employeeId, logout]);
 
+  // ── Warn on incomplete session (dev aid) ──────────────────────────────────
   useEffect(() => {
-    // 🛡️ Self-Healing: Clean up legacy keys from older versions
-    if (sessionStorage.getItem('portalUser')) {
-      const legacyId = sessionStorage.getItem('portalUser');
-      sessionStorage.setItem('employeeId', legacyId);
-      sessionStorage.removeItem('portalUser');
+    if (employeeId && !role) {
+      console.warn('[Auth] Role is missing for active session — re-authentication may be required.');
     }
-
-    const savedId = sessionStorage.getItem('employeeId');
-    const savedRole = sessionStorage.getItem('role');
-    const savedToken = sessionStorage.getItem('token');
-    const savedUserString = sessionStorage.getItem('user');
-
-    // 🛡️ Safety check: Ensure values are present and not the literal string "undefined"
-    const isValid = (val) => val && val !== "undefined";
-
-    // Re-hydrate core auth state
-    if (isValid(savedId)) setEmployeeId(savedId);
-    if (isValid(savedRole)) setRole(savedRole);
-    if (isValid(savedToken)) setToken(savedToken);
-    
-    // De-couple user object hydration from core state to prevent "all-or-nothing" failures
-    try {
-      if (isValid(savedUserString)) {
-        setUser(JSON.parse(savedUserString));
-      }
-    } catch (e) {
-      console.warn("Auth Hydration: Corrupted user object detected. Keeping personnel ID.", e);
-    }
-
-    // Secondary check: If role is missing but ID is present, we might be in a legacy session
-    if (isValid(savedId) && !isValid(savedRole)) {
-      console.warn("Auth Hydration: Missing role for active ID. Session requires re-authentication.");
-    }
-  }, [logout]);
+  }, [employeeId, role]);
 
   return (
-    <AuthContext.Provider value={{
-      employeeId,
-      role,
-      user,
-      token,
-      login,
-      logout
-    }}>
+    <AuthContext.Provider value={{ employeeId, role, user, token, sessionId, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -48,28 +48,41 @@ const Login = () => {
         {
           employeeId: empId,
           password: password,
-          appType: "SECURITY"
+          appType: "COMPANY"   // Triggers security-session check + biometric trust
         }
       );
 
-      const { token, role, user, employeeId: resEmpId } = res.data;
+      const { token, role, user, employeeId: resEmpId, sessionId, mfaRequired } = res.data;
 
-      // Robust role extraction (handle both standard and biometric payloads)
+      // If biometric MFA is still required (Security Website session may have been invalidated),
+      // direct the user back to complete verification on the Security Website.
+      if (mfaRequired) {
+        showToast("Session mismatch detected. Please re-authenticate via the Security Website.");
+        return;
+      }
+
+      // At this point we must have a real token — guard defensively
+      if (!token) {
+        showToast("Authentication incomplete. Please try again.");
+        return;
+      }
+
       const finalRole = role || user?.role;
       const finalEmpId = resEmpId || user?.employeeId || empId;
 
-      // Save to auth context with personnel data only
+      // Only commit to auth context when all required fields are present
       login({
         employeeId: finalEmpId,
         role: finalRole,
         token,
         user,
+        sessionId: sessionId || null,
       });
 
       localStorage.removeItem("failedLoginAttempts");
       localStorage.removeItem("forceLogout");
 
-      await logActivity(empId, "Login success", { role: finalRole });
+      await logActivity(finalEmpId, "Login success", { role: finalRole });
       navigate("/portal");
     } catch (err) {
       console.error("Login Error:", err);
